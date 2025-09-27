@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Додати завдання</title>
+</head>
+<body>
+<h2>Додати завдання</h2>
+<form action="/add" method="post">
+    Назва: <input type="text" name="title" required/><br/>
+    Термін виконання: <input type="date" name="dueDate" required/><br/>
+    Пріоритет:
+    <select name="priority">
+        <option>Низький</option>
+        <option>Середній</option>
+        <option>Високий</option>
+    </select><br/>
+    <button type="submit">Зберегти</button>
+</form>
+</body>
+</html>

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Планувальник завдань</title>
+</head>
+<body>
+<h1>Планувальник завдань</h1>
+<a href="/new">Додати завдання</a> |
+<a href="/sort/priority">Відсортувати за пріоритетом</a> |
+<a href="/sort/date">Відсортувати за датою</a>
+
+<table border="1">
+    <tr>
+        <th>Назва</th>
+        <th>Термін виконання</th>
+        <th>Пріоритет</th>
+        <th>Статус</th>
+        <th>Дії</th>
+    </tr>
+    <tr th:each="task : ${tasks}">
+        <td th:text="${task.title}"></td>
+        <td th:text="${task.dueDate}"></td>
+        <td th:text="${task.priority}"></td>
+        <td th:text="${task.completed ? 'Виконано' : 'У процесі'}"></td>
+        <td>
+            <a th:href="@{'/complete/' + ${task.id}}">Виконано</a> |
+            <a th:href="@{'/delete/' + ${task.id}}">Видалити</a>
+        </td>
+    </tr>
+</table>
+</body>
+</html>
