@@ -1,0 +1,195 @@
+openapi: 3.0.3
+info:
+  title: Task Planner API
+  version: 1.0.0
+  description: RESTful вебсервіс для управління завданнями.
+servers:
+  - url: http://localhost:8080
+
+paths:
+  /api/tasks:
+    get:
+      summary: Отримати список задач з фільтрацією та пагінацією
+      description: >
+        Повертає сторінку задач. Дозволяє фільтрувати за назвою, пріоритетом та статусом виконання.
+      parameters:
+        - in: query
+          name: title
+          schema: { type: string }
+          description: Фільтрація за частиною назви.
+        - in: query
+          name: priority
+          schema: { type: string, enum: [Low, Medium, High] }
+          description: Фільтрація за пріоритетом.
+        - in: query
+          name: completed
+          schema: { type: boolean }
+          description: Фільтрація за статусом виконання.
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 0, default: 0 }
+        - in: query
+          name: size
+          schema: { type: integer, minimum: 1, default: 5 }
+      responses:
+        '200':
+          description: Успішне отримання списку задач.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedTaskResponse'
+        '400':
+          description: Невалідні параметри пагінації.
+    post:
+      summary: Створити нову задачу
+      description: Створює задачу і повертає її дані.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskRequest'
+      responses:
+        '201':
+          description: Задачу створено.
+          headers:
+            Location:
+              description: URL новоствореної задачі.
+              schema: { type: string }
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+        '400':
+          description: Невалідні дані.
+
+  /api/tasks/{id}:
+    get:
+      summary: Отримати задачу за ID
+      responses:
+        '200':
+          description: Знайдено.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+        '404':
+          description: Не знайдено.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+    put:
+      summary: Оновити задачу повністю
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskRequest'
+      responses:
+        '200':
+          description: Оновлено.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+        '404':
+          description: Не знайдено.
+    delete:
+      summary: Видалити задачу
+      responses:
+        '204':
+          description: Успішно видалено.
+        '404':
+          description: Не знайдено.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+    patch:
+      summary: Часткове оновлення задачі (JSON Merge Patch)
+      description: >
+        Часткове оновлення полів задачі за допомогою JSON Merge Patch (RFC 7386).
+      requestBody:
+        required: true
+        content:
+          application/merge-patch+json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Оновлено.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+        '404':
+          description: Не знайдено.
+        '400':
+          description: Невалідний формат патчу.
+
+  /api/tasks/{id}/json-patch:
+    patch:
+      summary: Часткове оновлення задачі (JSON Patch)
+      description: >
+        Оновлення задачі за допомогою JSON Patch (RFC 6902).
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json-patch+json:
+            schema:
+              type: array
+              items:
+                type: object
+      responses:
+        '200':
+          description: Оновлено.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+        '404':
+          description: Не знайдено.
+        '400':
+          description: Невалідний патч.
+
+components:
+  schemas:
+    TaskRequest:
+      type: object
+      properties:
+        title: { type: string }
+        dueDate: { type: string, format: date }
+        priority:
+          type: string
+          enum: [Low, Medium, High]
+        completed:
+          type: boolean
+      required: [title, priority]
+    TaskResponse:
+      type: object
+      properties:
+        id: { type: integer }
+        title: { type: string }
+        dueDate: { type: string, format: date, nullable: true }
+        priority: { type: string }
+        completed: { type: boolean }
+    PagedTaskResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/TaskResponse'
+        page: { type: integer }
+        size: { type: integer }
+        totalElements: { type: integer }
+        totalPages: { type: integer }

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <title>Планувальник завдань</title>
+    <link rel="stylesheet" href="/main-styles.css">
+</head>
+<body>
+<h1>Планувальник завдань</h1>
+
+<div class="nav-links">
+    <a href="/new">Додати завдання</a> |
+    <a href="/sort/priority">Відсортувати за пріоритетом</a> |
+    <a href="/sort/date">Відсортувати за датою</a>
+</div>
+
+<table>
+    <thead>
+    <tr>
+        <th>Назва</th>
+        <th>Термін виконання</th>
+        <th>Пріоритет</th>
+        <th>Статус</th>
+        <th>Дії</th>
+    </tr>
+    </thead>
+
+    <tbody th:if="${#lists.isEmpty(tasks)}">
+    <tr><td colspan="5">Немає задач для відображення.</td></tr>
+    </tbody>
+
+    <tbody th:each="task : ${tasks}" th:unless="${#lists.isEmpty(tasks)}">
+    <tr th:classappend="${task.completed} ? 'done'">
+        <td th:text="${task.title ?: 'Немає назви'}"></td>
+        <td th:text="${task.dueDate}"></td>
+        <td th:switch="${task.priority}">
+            <span th:case="'Високий'" class="badge high">Високий</span>
+            <span th:case="'Середній'" class="badge medium">Середній</span>
+            <span th:case="'Низький'" class="badge low">Низький</span>
+        </td>
+        <td>
+            <span th:if="${task.completed}">Виконано</span>
+            <span th:unless="${task.completed}">
+                <span th:if="${task.dueDate != null and task.dueDate.isBefore(today)}" class="overdue">Прострочено</span>
+                <span th:unless="${task.dueDate != null and task.dueDate.isBefore(today)}">У процесі</span>
+            </span>
+        </td>
+        <td>
+            <a th:if="${!task.completed}" th:href="@{'/complete/' + ${task.id}}">Виконано</a>
+            <span th:unless="${!task.completed}"> </span> |
+            <a th:href="@{'/delete/' + ${task.id}}">Видалити</a>
+        </td>
+    </tr>
+    </tbody>
+</table>
+</body>
+</html>
