@@ -1,0 +1,173 @@
+openapi: 3.0.3
+info:
+  title: Task Planner API (Modernized)
+  version: 2.0.0
+  description: >
+    RESTful вебсервіс для управління завданнями з використанням реляційної СУБД та підтримкою транзакцій.
+    Ця версія API демонструє роботу з рівнями DAO та Service.
+servers:
+  - url: http://localhost:8080
+    description: Локальний сервер розробки
+
+paths:
+  /api/tasks:
+    get:
+      summary: Отримати список задач
+      description: >
+        Повертає сторінку задач з можливістю фільтрації за назвою, пріоритетом та статусом.
+        Дані сортуються за датою виконання (due_date).
+      parameters:
+        - name: title
+          in: query
+          description: Частина назви задачі для пошуку (ігнорує регістр).
+          schema: { type: string }
+        - name: priority
+          in: query
+          description: Фільтр за пріоритетом.
+          schema: { type: string, enum: [Low, Medium, High] }
+        - name: completed
+          in: query
+          description: Фільтр за статусом виконання.
+          schema: { type: boolean }
+        - name: page
+          in: query
+          description: Номер сторінки (починаючи з 0).
+          schema: { type: integer, minimum: 0, default: 0 }
+        - name: size
+          in: query
+          description: Кількість елементів на сторінці.
+          schema: { type: integer, minimum: 1, default: 5 }
+      responses:
+        '200':
+          description: Успішне отримання списку.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PagedTaskResponse' }
+        '400':
+          description: Невалідні параметри запиту.
+
+    post:
+      summary: Створити нову задачу
+      description: >
+        Додає нову задачу до бази даних. 
+        Первинний ключ (ID) генерується на стороні БД (послідовність Oracle).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TaskRequest' }
+      responses:
+        '201':
+          description: Задачу створено. Повертає об'єкт зі згенерованим ID.
+          headers:
+            Location:
+              description: URL створеного ресурсу.
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TaskResponse' }
+        '400':
+          description: Помилка валідації вхідних даних.
+
+  /api/tasks/{id}:
+    get:
+      summary: Отримати задачу за ID
+      description: Повертає повну інформацію про одну конкретну задачу.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Унікальний ідентифікатор задачі.
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Задачу знайдено.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TaskResponse' }
+        '404':
+          description: Задачу з таким ID не знайдено.
+
+    put:
+      summary: Оновити задачу
+      description: Повне оновлення полів існуючої задачі.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TaskRequest' }
+      responses:
+        '200':
+          description: Успішно оновлено.
+        '404':
+          description: Задача для оновлення не знайдена.
+
+    delete:
+      summary: Видалити задачу
+      description: Видаляє запис про задачу з бази даних.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '204':
+          description: Успішно видалено (без тіла відповіді).
+        '404':
+          description: Задача не знайдена.
+
+  /api/tasks/bulk-complete:
+    post:
+      summary: Масове завершення завдань (Транзакційно)
+      description: >
+        Приймає список ID та встановлює статус 'completed=true' для всіх.
+        Якщо хоча б один ID не існує, транзакція повністю відкочується.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items: { type: integer }
+              example: [1, 2, 3]
+      responses:
+        '200':
+          description: Всі завдання успішно оновлені.
+        '400':
+          description: Транзакція скасована через невірний ID або помилку БД.
+
+components:
+  schemas:
+    TaskRequest:
+      type: object
+      required: [title, priority]
+      properties:
+        title: { type: string, maxLength: 255 }
+        dueDate: { type: string, format: date }
+        priority: { type: string, enum: [Low, Medium, High] }
+        completed: { type: boolean }
+
+    TaskResponse:
+      type: object
+      properties:
+        id: { type: integer, example: 1 }
+        title: { type: string }
+        dueDate: { type: string, format: date, nullable: true }
+        priority: { type: string }
+        completed: { type: boolean }
+
+    PagedTaskResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items: { $ref: '#/components/schemas/TaskResponse' }
+        page: { type: integer }
+        size: { type: integer }
+        totalElements: { type: integer }
+        totalPages: { type: integer }
